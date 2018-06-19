@@ -7,5 +7,11 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "fs-extra": "6.0.1",
+    "grib2json": "1.0.0",
+    "jimp": "0.2.28",
+    "proj4": "2.4.4"
+  }
 }
