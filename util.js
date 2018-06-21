@@ -1,5 +1,5 @@
 const grib2json = require('grib2json').default;
-const Jimp = require("jimp");
+const Jimp = require('jimp');
 
 function keyDataByCoordinates(header, data) { // TODO: consider only storing coordinates within BBOX
     const keyedValues = {};
@@ -51,29 +51,34 @@ function makeLayer(layer, bbox) {
 
         new Jimp(pixelValues.length, pixelValues[0].length, function (err, image) {
             if (err) return reject(err);
-            image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (x, y, idx) {
-                // var red = this.bitmap.data[idx + 0];
-                // var green = this.bitmap.data[idx + 1];
-                // var blue = this.bitmap.data[idx + 2];
-                // var alpha = this.bitmap.data[idx + 3];
+            if (layer.custom) {
+                layer.custom(image, pixelValues)
+                    .then(() => resolve(image));
+            } else {
+                image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (x, y, idx) {
+                    // var red = this.bitmap.data[idx + 0];
+                    // var green = this.bitmap.data[idx + 1];
+                    // var blue = this.bitmap.data[idx + 2];
+                    // var alpha = this.bitmap.data[idx + 3];
 
-                const {
-                    value,
-                    lon,
-                    lat
-                } = pixelValues[x][y];
-                const [r, g, b, a] = layer.getPixel(value, lon, lat);
-                this.bitmap.data[idx + 0] = r;
-                this.bitmap.data[idx + 1] = g;
-                this.bitmap.data[idx + 2] = b;
-                this.bitmap.data[idx + 3] = a;
+                    const {
+                        value,
+                        lon,
+                        lat
+                    } = pixelValues[x][y];
+                    const [r, g, b, a] = layer.getPixel(value, lon, lat, pixelValues, x, y);
+                    this.bitmap.data[idx + 0] = r;
+                    this.bitmap.data[idx + 1] = g;
+                    this.bitmap.data[idx + 2] = b;
+                    this.bitmap.data[idx + 3] = a;
 
 
-                if (x == image.bitmap.width - 1 &&
-                    y == image.bitmap.height - 1) {
-                    resolve(image);
-                }
-            });
+                    if (x == image.bitmap.width - 1 &&
+                        y == image.bitmap.height - 1) {
+                        resolve(image);
+                    }
+                });
+            }
         });
     });
 }
@@ -117,7 +122,12 @@ function getGrib(gribFilePath, opts) {
 }
 
 
+function flatten(arrArr) {
+    return arrArr.reduce((acc, arr) => acc.concat(arr));
+}
+
 module.exports = {
     makeMap: makeMap,
-    getGrib: getGrib
+    getGrib: getGrib,
+    flatten: flatten
 };
