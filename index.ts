@@ -1,12 +1,11 @@
-const Jimp = require('jimp');
-const {
+import Jimp from 'jimp';
+import {
     makeMap,
     getGrib,
     flatten
-} = require('./util');
-const bbox = [-180, 90, 180, -90];
+} from './util';
 
-function makeTemperatureMap(gribFilePath) {
+function makeTemperatureMap(gribFilePath, bbox) {
     return Promise.all([
         getGrib(gribFilePath, { //LAND
             scriptPath: 'grib2json-0.8.0-SNAPSHOT/bin/grib2json',
@@ -28,67 +27,67 @@ function makeTemperatureMap(gribFilePath) {
         })
     ]).then(([landGrib, tempGrib]) => {
         const layers = [{
-                grib: tempGrib[0],
-                getPixel: function getPixel(value, lon, lat, values, x, y) {
-                    value -= 272.15;
+            grib: tempGrib[0],
+            getPixel: function getPixel(value, lon, lat, values, x, y) {
+                value -= 272.15;
 
-                    let r = 0,
-                        g = 0,
-                        b = 0;
+                let r = 0,
+                    g = 0,
+                    b = 0;
 
-                    if (value < 0) {
-                        r = 0;
-                        g = 0;
-                        b = 100;
-                    } else if (value <= 20) {
-                        r = 97;
-                        g = 170;
-                        b = 134;
-                    } else if (value <= 30) {
-                        r = 223;
-                        g = 165;
-                        b = 64;
-                    } else {
-                        r = 207;
-                        g = 90;
-                        b = 76;
-                    }
-                    return [r, g, b, 255];
+                if (value < 0) {
+                    r = 0;
+                    g = 0;
+                    b = 100;
+                } else if (value <= 20) {
+                    r = 97;
+                    g = 170;
+                    b = 134;
+                } else if (value <= 30) {
+                    r = 223;
+                    g = 165;
+                    b = 64;
+                } else {
+                    r = 207;
+                    g = 90;
+                    b = 76;
                 }
-            }, {
-                grib: landGrib[0],
-                getPixel: function getPixel(value, lon, lat, values, x, y) {
-                    let r = 0,
-                        g = 0,
-                        b = 0,
-                        a = 0;
+                return [r, g, b, 255];
+            }
+        }, {
+            grib: landGrib[0],
+            getPixel: function getPixel(value, lon, lat, values, x, y) {
+                let r = 0,
+                    g = 0,
+                    b = 0,
+                    a = 0;
 
-                    if (value === 0) {
-                        r = 67;
-                        g = 165;
-                        b = 222;
+                if (value === 0) {
+                    r = 67;
+                    g = 165;
+                    b = 222;
+                    a = 255;
+                } else {
+                    const val = values[x][y].value;
+                    const neighbourDiffers = !( //TODO: replace
+                        ((values[x - 1] || [])[y] || {}).value === val &&
+                        ((values[x + 1] || [])[y] || {}).value === val &&
+                        ((values[x] || [])[y - 1] || {}).value === val &&
+                        ((values[x] || [])[y + 1] || {}).value === val);
+                    if (neighbourDiffers) {
                         a = 255;
-                    } else {
-                        const val = values[x][y].value;
-                        const neighbourDiffers = !( //TODO: replace
-                            ((values[x - 1] || [])[y] || {}).value === val &&
-                            ((values[x + 1] || [])[y] || {}).value === val &&
-                            ((values[x] || [])[y - 1] || {}).value === val &&
-                            ((values[x] || [])[y + 1] || {}).value === val);
-                        if (neighbourDiffers) {
-                            a = 255;
-                        }
                     }
-
-                    return [r, g, b, a];
                 }
-            },
-            {
-                grib: tempGrib[0],
-                custom: function custom(image, data) {
-                    return Jimp.loadFont(Jimp.FONT_SANS_8_WHITE).then(function (font) {
-                        const density = 30;
-                        [...Array(density)]
+
+                return [r, g, b, a];
+            }
+        },
+        {
+            grib: tempGrib[0],
+            custom: function custom(image, data) {
+                return (<any>Jimp).loadFont(Jimp.FONT_SANS_8_WHITE).then(function (font) {
+                    const density = 30;
+                    [...Array(density)]
                         .map((_, xI) => [...Array(density)]
                             .forEach((_, yI) => {
                                 const xLength = image.bitmap.width;
@@ -110,11 +109,13 @@ function makeTemperatureMap(gribFilePath) {
 
                                 image.print(font, xPos, yPos, `${Math.floor(avgValue)}`, xCellSize); // print a message on an image with text wrapped at width
                             }))
-                    });
-                }
+                });
             }
+        }
         ];
 
         return makeMap(layers, bbox);
     });
 }
+
+export default makeTemperatureMap;
