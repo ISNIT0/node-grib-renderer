@@ -1,3 +1,6 @@
+const grib2json = require('grib2json').default;
+const Jimp = require("jimp");
+
 function keyDataByCoordinates(header, data) { // TODO: consider only storing coordinates within BBOX
     const keyedValues = {};
     data.forEach((val, index) => {
@@ -10,7 +13,9 @@ function keyDataByCoordinates(header, data) { // TODO: consider only storing coo
         keyedValues[newXCoord] = keyedValues[newXCoord] || {};
         keyedValues[newXCoord][yCoord] = {
             value: val,
-            index: index
+            index: index,
+            lon: newXCoord,
+            lat: yCoord
         };
     });
     return keyedValues;
@@ -21,15 +26,15 @@ function getValuesForBBox(coordinateData, bbox) {
     const slicedValues = [];
     Object.keys(coordinateData)
         .map(x => Number(x))
-        .filter(x => x >= topLeft[0] && x <= bottomRight[0])
+        .filter(x => x >= xMin && x <= xMax)
         .sort((a, b) => a == b ? 0 : a > b ? 1 : -1)
         .forEach((xKey, index) => {
             slicedValues[index] = slicedValues[index] || [];
             Object.keys(coordinateData[xKey])
                 .map(y => Number(y))
-                .filter(y => y <= topLeft[1] && y >= bottomRight[1])
+                .filter(y => y <= yMax && y >= yMin)
                 .sort((a, b) => a == b ? 0 : a < b ? 1 : -1)
-                .forEach((yKey) => slicedValues[index].push(coordinateData[xKey][yKey].value));
+                .forEach((yKey) => slicedValues[index].push(coordinateData[xKey][yKey]));
         });
     return slicedValues;
 }
@@ -45,14 +50,19 @@ function makeLayer(layer, bbox) {
         const pixelValues = getValuesForBBox(coordinateData, bbox);
 
         new Jimp(pixelValues.length, pixelValues[0].length, function (err, image) {
+            if (err) return reject(err);
             image.scan(0, 0, image.bitmap.width, image.bitmap.height, function (x, y, idx) {
                 // var red = this.bitmap.data[idx + 0];
                 // var green = this.bitmap.data[idx + 1];
                 // var blue = this.bitmap.data[idx + 2];
                 // var alpha = this.bitmap.data[idx + 3];
 
-                const gribValue = pixelValues[x][y];
-                const [r, g, b, a] = layer.getPixel(gribValue);
+                const {
+                    value,
+                    lon,
+                    lat
+                } = pixelValues[x][y];
+                const [r, g, b, a] = layer.getPixel(value, lon, lat);
                 this.bitmap.data[idx + 0] = r;
                 this.bitmap.data[idx + 1] = g;
                 this.bitmap.data[idx + 2] = b;
@@ -71,28 +81,43 @@ function makeLayer(layer, bbox) {
 
 function makeMap(layers, bbox) {
     return Promise.all(
-            layers.sort((a, b) => a.order > b.order ? 1 : -1)
+            layers
             .map(layer => makeLayer(layer, bbox))
         )
-        .then((layers) => {
-            const [largestX, largestY] = layers.reduce(([largestX, largestY], image) => {
+        .then((imageLayers) => {
+            const largestXY = imageLayers.reduce((acc, image) => {
                 return [
-                    Math.max(largestX, image.bitmap.width),
-                    Math.max(largestY, image.bitmap.height)
+                    Math.max(acc[0], image.bitmap.width),
+                    Math.max(acc[1], image.bitmap.height)
                 ];
-            });
+            }, [0, 0]);
 
-            const outputImage = new Jimp(largestX, largestY);
-            layers.forEach((layer) => {
-                layer.scaleToFit(largestX, largestY);
-                outputImage.composite(layer, 0, 0)
+            return new Promise((resolve, reject) => {
+                new Jimp(largestXY[0], largestXY[1], function (err, outputImage) {
+                    if (err) return reject(err);
+                    imageLayers.forEach((layer) => {
+                        layer.scaleToFit(largestXY[0], largestXY[1]);
+                        outputImage.composite(layer, 0, 0)
+                    });
+                    resolve(outputImage);
+                });
             });
-            return outputImage;
         });
 }
 
 
 
+function getGrib(gribFilePath, opts) {
+    return new Promise((resolve, reject) => {
+        grib2json(gribFilePath, opts, function (err, json) {
+            if (err) reject(err);
+            else resolve(json);
+        });
+    });
+}
+
+
 module.exports = {
-    makeMap: makeMap
+    makeMap: makeMap,
+    getGrib: getGrib
 };
