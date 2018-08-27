@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/node": "10.5.0",
     "fs-extra": "6.0.1",
     "grib2json": "1.0.0",
     "jimp": "0.2.28",

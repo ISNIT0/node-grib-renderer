@@ -39,7 +39,11 @@ function getValuesForBBox(coordinateData, bbox) {
     return slicedValues;
 }
 
-function makeLayer(layer, bbox) {
+function makeLayer(layer, bbox, {
+    width,
+    height,
+    sizeMult
+} = {}) {
     return new Promise((resolve, reject) => {
         const grib = layer.grib;
         const header = grib.header;
@@ -49,7 +53,7 @@ function makeLayer(layer, bbox) {
 
         const pixelValues = getValuesForBBox(coordinateData, bbox);
 
-        new Jimp(pixelValues.length, pixelValues[0].length, function (err, image) {
+        new Jimp(width || pixelValues.length * (sizeMult || 1), height || pixelValues[0].length * (sizeMult || 1), function (err, image) {
             if (err) return reject(err);
             if (layer.custom) {
                 layer.custom(image, pixelValues)
@@ -61,12 +65,18 @@ function makeLayer(layer, bbox) {
                     // var blue = this.bitmap.data[idx + 2];
                     // var alpha = this.bitmap.data[idx + 3];
 
+                    const valueX = Math.min(x * pixelValues.length / image.bitmap.width, pixelValues.length - 1);
+                    const valueY = Math.min(y * pixelValues[0].length / image.bitmap.height, pixelValues[0].length - 1);
+
+                    // console.log(x, y, valueX, valueY, pixelValues.length, pixelValues[valueX].length);
+
                     const {
                         value,
                         lon,
                         lat
-                    } = pixelValues[x][y];
-                    const [r, g, b, a] = layer.getPixel(value, lon, lat, pixelValues, x, y);
+                    } = pixelValues[Math.floor(valueX)][Math.floor(valueY)];
+
+                    const [r, g, b, a] = layer.getPixel(value, lon, lat, pixelValues, valueX, valueY);
                     this.bitmap.data[idx + 0] = r;
                     this.bitmap.data[idx + 1] = g;
                     this.bitmap.data[idx + 2] = b;
@@ -84,10 +94,10 @@ function makeLayer(layer, bbox) {
 }
 
 
-function makeMap(layers, bbox) {
+function makeMap(layers, bbox, opts = {}) {
     return Promise.all(
             layers
-            .map(layer => makeLayer(layer, bbox))
+            .map(layer => makeLayer(layer, bbox, opts))
         )
         .then((imageLayers) => {
             const largestXY = imageLayers.reduce((acc, image) => {
@@ -97,12 +107,13 @@ function makeMap(layers, bbox) {
                 ];
             }, [0, 0]);
 
+            const [width, height] = [opts.width || largestXY[0] * (opts.sizeMult || 1), opts.height || largestXY[1] * (opts.sizeMult || 1)];
             return new Promise((resolve, reject) => {
-                new Jimp(largestXY[0], largestXY[1], function (err, outputImage) {
+                new Jimp(width, height, function (err, outputImage) {
                     if (err) return reject(err);
                     imageLayers.forEach((layer) => {
-                        layer.scaleToFit(largestXY[0], largestXY[1]);
-                        outputImage.composite(layer, 0, 0)
+                        layer.scaleToFit(width, height);
+                        outputImage.composite(layer, 0, 0);
                     });
                     resolve(outputImage);
                 });
