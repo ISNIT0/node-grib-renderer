@@ -1,12 +1,7 @@
 import * as Jimp from 'jimp';
 import {
-    makeMap, Pixel
+    makeMap, getGrib, Pixel
 } from '../lib/lib';
-
-import {
-    getGrib,
-    flatten
-} from '../lib/util';
 
 import * as path from 'path';
 

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var grib2json_1 = require("grib2json");
 var Jimp = require("jimp");
 function keyDataByCoordinates(header, data) {
     var keyedValues = {};
@@ -60,7 +61,6 @@ function makeLayer(layer, bbox, _a) {
                     // var alpha = this.bitmap.data[idx + 3];
                     var valueX = Math.min(x * pixelValues.length / image.bitmap.width, pixelValues.length - 1);
                     var valueY = Math.min(y * pixelValues[0].length / image.bitmap.height, pixelValues[0].length - 1);
-                    // console.log(x, y, valueX, valueY, pixelValues.length, pixelValues[valueX].length);
                     var _a = pixelValues[Math.floor(valueX)][Math.floor(valueY)], value = _a.value, lon = _a.lon, lat = _a.lat;
                     var _b = layer['getPixel'](value, lon, lat, pixelValues, valueX, valueY), r = _b[0], g = _b[1], b = _b[2], a = _b[3];
                     this.bitmap.data[idx + 0] = r;
@@ -101,3 +101,18 @@ function makeMap(layers, bbox, opts) {
     });
 }
 exports.makeMap = makeMap;
+function getGrib(gribFilePath, opts) {
+    return new Promise(function (resolve, reject) {
+        grib2json_1.default(gribFilePath, opts, function (err, json) {
+            if (err)
+                reject(err);
+            else
+                resolve(json);
+        });
+    });
+}
+exports.getGrib = getGrib;
+function flatten(arrArr) {
+    return arrArr.reduce(function (acc, arr) { return acc.concat(arr); });
+}
+exports.flatten = flatten;

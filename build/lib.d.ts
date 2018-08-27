@@ -1,5 +1,7 @@
 import * as Jimp from 'jimp';
 export declare function makeMap(layers: Layer[], bbox: BBox, opts?: MakeLayerOpts): Promise<{}>;
+export declare function getGrib(gribFilePath: any, opts: any): Promise<{}>;
+export declare function flatten(arrArr: any): any;
 export declare type BBox = [number, number, number, number];
 export declare type Pixel = [number, number, number, number];
 export declare type Grib = {
