@@ -70,8 +70,6 @@ function makeLayer(layer: Layer, bbox: BBox, {
                         const valueX = Math.min(x * pixelValues.length / image.bitmap.width, pixelValues.length - 1);
                         const valueY = Math.min(y * pixelValues[0].length / image.bitmap.height, pixelValues[0].length - 1);
 
-                        // console.log(x, y, valueX, valueY, pixelValues.length, pixelValues[valueX].length);
-
                         const {
                             value,
                             lon,
