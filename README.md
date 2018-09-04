@@ -1,6 +1,6 @@
 # Node GFS GRIB Renderer
 
-This project is a thin wrapper around [Jimp]() and [grib2json]() which simplifies writing GRIB visualisations in pure JS.
+This project is a thin wrapper around [Jimp](https://github.com/oliver-moran/jimp/) and [grib2json](https://github.com/cambecc/grib2json) which simplifies writing GRIB visualisations in pure JS.
 
 There's not much practical use for this, but it's a nice and visual way to get into GRIB processing.
 
@@ -20,7 +20,7 @@ GFS Grib files' Latitudes by default start where we mere mortals might expect to
 
 ## Usage
 ```typescript
-import { makeMap, getGrib } from 'NODEMAPMAKERPACKAGENAME';
+import { makeMap, getGrib } from 'grib-renderer';
 
 const worldBBox = [-180, 90, 180, -90];
 
@@ -66,7 +66,7 @@ You can execute the native TypeScript example using [`ts-node`]():
 ```
 
 ## Dependencies
-- grib2json
+- grib2json (https://github.com/cambecc/grib2json)
 - Valid GFS GRIB file
 - NodeJS
 
