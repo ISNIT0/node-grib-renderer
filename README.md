@@ -20,20 +20,23 @@ GFS Grib files' Latitudes by default start where we mere mortals might expect to
 
 ## Usage
 ```typescript
-import { makeMap, getGrib } from 'grib-renderer';
+import { makeMap } from 'grib-renderer';
+import grib2json from 'grib2json';
 
 const worldBBox = [-180, 90, 180, -90];
+const grib2jsonPath = path.join(__dirname, '../grib2json-0.8.0-SNAPSHOT/bin/grib2json');
 
-getGrib(gribFilePath, { // LAND
-    scriptPath: './gribfile.grib2',
+grib2json(gribFilePath, { // LAND
+    scriptPath: grib2jsonPath,
     names: true,
     data: true,
     category: 0,
     parameter: 218,
     surfaceType: 1,
     surfaceValue: 0,
-})
-    .then(landGrib => {
+}, function (err, json) {
+    if (err) return console.error(err);
+    else {
         const landLayer = {
             grib:landGrib,
             getPixel:(value) => {
@@ -46,14 +49,14 @@ getGrib(gribFilePath, { // LAND
             }
         };
 
-        return makeMap([landLayer], worldBBox);
-    })
-    .then((img: Jimp) => {
-        img.write('./out.png');
-        console.info('Written to file [./out.png]')
-    })
-    .catch(err => console.error(err));
-
+        makeMap([landLayer], worldBBox)
+            .then((img: Jimp) => {
+                img.write('./out.png');
+                console.info('Written to file [./out.png]')
+            })
+            .catch(err => console.error(err));
+    }
+});
 ```
 
 ## Example
@@ -71,14 +74,15 @@ You can execute the native TypeScript example using [`ts-node`]():
 - NodeJS
 
 ```bash
-> wget GRIB2JSON_SNAPSHOT
-> wget GFSGRIB FILE or gfsscraper
+> # Download Grib2JSON (see https://github.com/cambecc/grib2json)
+> # Download a Grib File (see https://github.com/ISNIT0/gfs-scraper)
 > npm i
+> npm i -g typescript
 ```
 
 ## Building
 ```bash
-> tsc # TypesSript Compiler - you may need to install this
+> tsc
 ```
 
 ## License

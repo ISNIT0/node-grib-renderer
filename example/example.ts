@@ -1,7 +1,19 @@
 import * as Jimp from 'jimp';
 import {
-    makeMap, getGrib, Pixel
+    makeMap, Pixel
 } from '../lib/lib';
+import grib2json from 'grib2json';
+
+
+function getGrib(gribFilePath, opts) {
+    return new Promise((resolve, reject) => {
+        grib2json(gribFilePath, opts, function (err, json) {
+            if (err) reject(err);
+            else resolve(json);
+        });
+    });
+}
+
 
 import * as path from 'path';
 
