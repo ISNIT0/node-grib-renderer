@@ -20,37 +20,44 @@ GFS Grib files' Latitudes by default start where we mere mortals might expect to
 
 ## Usage
 ```typescript
+import * as path from 'path';
 import { makeMap } from 'grib-renderer';
 import grib2json from 'grib2json';
 
-const worldBBox = [-180, 90, 180, -90];
-const grib2jsonPath = path.join(__dirname, '../grib2json-0.8.0-SNAPSHOT/bin/grib2json');
+const worldBBox = <any>[-180, 90, 180, -90];
 
-grib2json(gribFilePath, { // LAND
-    scriptPath: grib2jsonPath,
+grib2json('./gfs.t06z.pgrb2.0p25.f000', { // LAND
+    scriptPath: './grib2json-0.8.0-SNAPSHOT/bin/grib2json',
     names: true,
     data: true,
     category: 0,
     parameter: 218,
     surfaceType: 1,
     surfaceValue: 0,
-}, function (err, json) {
+}, function (err, landGrib) {
     if (err) return console.error(err);
     else {
         const landLayer = {
-            grib:landGrib,
-            getPixel:(value) => {
-                const red = 203;
-                const green = 223;
-                const blue = 218;
-                const alpha = 255;
+            grib: landGrib[0],
+            getPixel: (value) => {
+                let red = 0,
+                    green = 0,
+                    blue = 0,
+                    alpha = 255;
+
+                if (value === 0) { // Sea
+                    red = 203;
+                    green = 223;
+                    blue = 218;
+                    alpha = 255;
+                }
 
                 return [red, green, blue, alpha];
             }
         };
 
         makeMap([landLayer], worldBBox)
-            .then((img: Jimp) => {
+            .then((img) => {
                 img.write('./out.png');
                 console.info('Written to file [./out.png]')
             })
