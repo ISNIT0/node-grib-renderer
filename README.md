@@ -1,4 +1,5 @@
 # Node GFS GRIB Renderer
+![Safe NPM](https://safenpm.herokuapp.com/status/grib-renderer.png)
 
 This project is a thin wrapper around [Jimp](https://github.com/oliver-moran/jimp/) and [grib2json](https://github.com/cambecc/grib2json) which simplifies writing GRIB visualisations in pure JS.
 
